@@ -51,7 +51,7 @@ WETH (Wrapped ETH) 是 ETH 的包装版本。由于以太币本身并不符合 E
 
 <br>
 
-## DODO Bounty任务
+## DODO Bounty 任务
 ### 公开拍卖：
 
 1. 每个购买者在拍卖期间发送他们的竞标到智能合约。 
@@ -69,3 +69,17 @@ WETH (Wrapped ETH) 是 ETH 的包装版本。由于以太币本身并不符合 E
 7. *拍卖终局延长(如果在拍卖快要结束的最后几分钟内有人出价，则拍卖时间会自 动延长一定的时间（例如5分钟），避免“最后一秒出价”的情况，并让竞拍更加激烈。 
 
    （除了1，2，3，4基础拍卖功能外，还需要从5,6,7三个附加功能中选择任意一个实现）
+<br>
+
+## Morph Bounty 任务
+### 基于Morph的去中心化酒店预定app: <br>
+https://morph.ghost.io/developer-guide-building-a-decentralized-hotel-booking-system-on-morph-2/
+
+<br>
+
+## Arbitrum Bounty 任务（二选一）
+1) 编写一个基于retryable ticket系统的Layer1 -> Layer2跨链消息系统，需要用户对L1合约进行操作，并且通过调用retryable来改写Layer2上合约的状态。
+
+(例子：合约A和合约B分别位于L1和L2，每次对合约A状态的更改都需要更改对应合约b的状态。)
+
+2) 用stylus （rust或者c/c++语言）重新改写uniswap v1或v2 (或者其他你想要改写的合约)
