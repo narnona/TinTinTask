@@ -113,6 +113,7 @@ contract PublicAuctionTest is Test {
 
         vm.warp(block.timestamp + 1 minutes + 1);
         auction.bid{value: 2 ether}();
+	assertEq(auction.highestBid(), 2 ether);
         vm.stopPrank();
     }
     
