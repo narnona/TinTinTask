@@ -3,19 +3,19 @@ pragma solidity >=0.6.11;
 
 import "@arbitrum/nitro-contracts/src/bridge/Inbox.sol";
 import "@arbitrum/nitro-contracts/src/bridge/Outbox.sol";
-import "../Greeter.sol";
+import "../State.sol";
 
-contract GreeterL1 is Greeter {
+contract StateL1 is State {
     address public l2Target;
     IInbox public inbox;
 
     event RetryableTicketCreated(uint256 indexed ticketId);
 
     constructor(
-        string memory _greeting,
+        string memory _state,
         address _l2Target,
         address _inbox
-    ) Greeter(_greeting) {
+    ) State(_state) {
         l2Target = _l2Target;
         inbox = IInbox(_inbox);
     }
@@ -24,13 +24,13 @@ contract GreeterL1 is Greeter {
         l2Target = _l2Target;
     }
 
-    function setGreetingInL2(
-        string memory _greeting,
+    function setStateInL2(
+        string memory _state,
         uint256 maxSubmissionCost,
         uint256 maxGas,
         uint256 gasPriceBid
     ) public payable returns (uint256) {
-        bytes memory data = abi.encodeWithSelector(Greeter.setGreeting.selector, _greeting);
+        bytes memory data = abi.encodeWithSelector(State.setState.selector, _state);
         uint256 ticketID = inbox.createRetryableTicket{ value: msg.value }(
             l2Target,
             0,
@@ -46,15 +46,15 @@ contract GreeterL1 is Greeter {
         return ticketID;
     }
 
-    /// @notice only l2Target can update greeting
-    function setGreeting(string memory _greeting) public override {
+    /// @notice only l2Target can update state
+    function setState(string memory _state) public override {
         IBridge bridge = inbox.bridge();
         // this prevents reentrancies on L2 to L1 txs
         require(msg.sender == address(bridge), "NOT_BRIDGE");
         IOutbox outbox = IOutbox(bridge.activeOutbox());
         address l2Sender = outbox.l2ToL1Sender();
-        require(l2Sender == l2Target, "Greeting only updateable by L2");
+        require(l2Sender == l2Target, "State only updateable by L2");
 
-        Greeter.setGreeting(_greeting);
+        State.setState(_state);
     }
 }

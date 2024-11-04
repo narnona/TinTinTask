@@ -3,15 +3,15 @@ pragma solidity >=0.6.11;
 
 import "@arbitrum/nitro-contracts/src/precompiles/ArbSys.sol";
 import "@arbitrum/nitro-contracts/src/libraries/AddressAliasHelper.sol";
-import "../Greeter.sol";
+import "../State.sol";
 
-contract GreeterL2 is Greeter {
+contract StateL2 is State {
     ArbSys constant arbsys = ArbSys(address(100));
     address public l1Target;
 
     event L2ToL1TxCreated(uint256 indexed withdrawalId);
 
-    constructor(string memory _greeting, address _l1Target) Greeter(_greeting) {
+    constructor(string memory _state, address _l1Target) State(_state) {
         l1Target = _l1Target;
     }
 
@@ -19,8 +19,8 @@ contract GreeterL2 is Greeter {
         l1Target = _l1Target;
     }
 
-    function setGreetingInL1(string memory _greeting) public returns (uint256) {
-        bytes memory data = abi.encodeWithSelector(Greeter.setGreeting.selector, _greeting);
+    function setStateInL1(string memory _state) public returns (uint256) {
+        bytes memory data = abi.encodeWithSelector(State.setState.selector, _state);
 
         uint256 withdrawalId = arbsys.sendTxToL1(l1Target, data);
 
@@ -28,13 +28,13 @@ contract GreeterL2 is Greeter {
         return withdrawalId;
     }
 
-    /// @notice only l1Target can update greeting
-    function setGreeting(string memory _greeting) public override {
+    /// @notice only l1Target can update state
+    function setState(string memory _state) public override {
         // To check that message came from L1, we check that the sender is the L1 contract's L2 alias.
         require(
             msg.sender == AddressAliasHelper.applyL1ToL2Alias(l1Target),
-            "Greeting only updateable by L1"
+            "State only updateable by L1"
         );
-        Greeter.setGreeting(_greeting);
+        State.setState(_state);
     }
 }

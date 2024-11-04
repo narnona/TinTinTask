@@ -28,7 +28,7 @@ const l1Wallet = new Wallet(walletPrivateKey, l1Provider)
 const l2Wallet = new Wallet(walletPrivateKey, l2Provider)
 
 const main = async () => {
-  await arbLog('Cross-chain Greeter')
+  await arbLog('Cross-chain Messaging')
 
   /**
    * Add the default local network configuration to the SDK
@@ -46,52 +46,75 @@ const main = async () => {
   const inboxAddress = ethBridger.l2Network.ethBridge.inbox
 
   /**
-   * We deploy L1 Greeter to L1, L2 greeter to L2, each with a different "greeting" message.
+   * We deploy L1 State to L1, L2 State to L2, each with a different "state" message.
    * After deploying, save set each contract's counterparty's address to its state so that they can later talk to each other.
    */
-  const L1Greeter = await (
-    await hre.ethers.getContractFactory('GreeterL1')
+   
+  const L1State = await (
+    await hre.ethers.getContractFactory('StateL1')
   ).connect(l1Wallet) //
-  console.log('Deploying L1 Greeter 👋')
-  const l1Greeter = await L1Greeter.deploy(
-    'Hello world in L1',
+  console.log('Deploying L1 Contract: ')
+  const l1State = await L1State.deploy(
+    'A current state in L1',
     ethers.constants.AddressZero, // temp l2 addr
     inboxAddress
   )
-  await l1Greeter.deployed()
-  console.log(`deployed to ${l1Greeter.address}`)
-  const L2Greeter = await (
-    await hre.ethers.getContractFactory('GreeterL2')
+  await l1State.deployed()
+  console.log(`deployed to ${l1State.address}`)
+  const L2State = await (
+    await hre.ethers.getContractFactory('StateL2')
   ).connect(l2Wallet)
 
-  console.log('Deploying L2 Greeter 👋👋')
+  console.log('Deploying L2 Contract')
 
-  const l2Greeter = await L2Greeter.deploy(
-    'Hello world in L2',
+  const l2State = await L2State.deploy(
+    'A current state in L2',
     ethers.constants.AddressZero // temp l1 addr
   )
-  await l2Greeter.deployed()
-  console.log(`deployed to ${l2Greeter.address}`)
+  await l2State.deployed()
+  console.log(`deployed to ${l2State.address}`)
 
-  const updateL1Tx = await l1Greeter.updateL2Target(l2Greeter.address)
+  const updateL1Tx = await l1State.updateL2Target(l2State.address)
   await updateL1Tx.wait()
 
-  const updateL2Tx = await l2Greeter.updateL1Target(l1Greeter.address)
+  const updateL2Tx = await l2State.updateL1Target(l1State.address)
   await updateL2Tx.wait()
-  console.log('Counterpart contract addresses set in both greeters 👍')
+  console.log('Counterpart contract addresses set in both states! ')
+  console.log('========================================================== ')
+
+/*
+  const l1address = "0x3a350Ee2BC6ADfDb0f8e673dd65B9FF8C2efB982"
+  const l2address = "0xC93c54b331382E972F4788DA7bDF53486066716b"
+  
+  const l1ABI = [
+    "function updateL2Target(address) public",
+    "function setStateInL2(string, uint256, uint256, uint256) public payable returns (uint256)",
+    "function setState(string) public",
+    "function getState() public view returns (string)",
+  ];
+  
+  const l2ABI = [
+    "function setStateInL1(string) public returns (uint256)",
+    "function setState(string) public",
+    "function getState() public view returns (string)",
+  ];
+  
+  const l1State = new ethers.Contract(l1address, l1ABI, l1Wallet)
+  const l2State = new ethers.Contract(l2address, l2ABI, l2Wallet)
+  console.log("info load!")
+  */
+  /**
+   * Let's log the L2 state string
+   */
+  const currentL2State = await l2State.getState()
+  console.log(`Current L2 state: "${currentL2State}"`)
+
+  console.log('Updating state from L1 to L2:')
 
   /**
-   * Let's log the L2 greeting string
+   * Here we have a new state message that we want to set as the L2 state; we'll be setting it by sending it as a message from layer 1!!!
    */
-  const currentL2Greeting = await l2Greeter.greet()
-  console.log(`Current L2 greeting: "${currentL2Greeting}"`)
-
-  console.log('Updating greeting from L1 to L2:')
-
-  /**
-   * Here we have a new greeting message that we want to set as the L2 greeting; we'll be setting it by sending it as a message from layer 1!!!
-   */
-  const newGreeting = 'Greeting from far, far away'
+  const newState = 'A new state from L1'
 
   /**
    * Now we can query the required gas params using the estimateAll method in Arbitrum SDK
@@ -100,11 +123,11 @@ const main = async () => {
 
   /**
    * To be able to estimate the gas related params to our L1-L2 message, we need to know how many bytes of calldata out retryable ticket will require
-   * i.e., we need to calculate the calldata for the function being called (setGreeting())
+   * i.e., we need to calculate the calldata for the function being called (setState())
    */
-  const ABI = ['function setGreeting(string _greeting)']
+  const ABI = ['function setState(string _state)']
   const iface = new ethers.utils.Interface(ABI)
-  const calldata = iface.encodeFunctionData('setGreeting', [newGreeting])
+  const calldata = iface.encodeFunctionData('setState', [newState])
 
   /**
    * Users can override the estimated gas params when sending an L1-L2 message
@@ -136,8 +159,8 @@ const main = async () => {
    */
   const L1ToL2MessageGasParams = await l1ToL2MessageGasEstimate.estimateAll(
     {
-      from: await l1Greeter.address,
-      to: await l2Greeter.address,
+      from: await l1State.address,
+      to: await l2State.address,
       l2CallValue: 0,
       excessFeeRefundAddress: await l2Wallet.address,
       callValueRefundAddress: await l2Wallet.address,
@@ -158,10 +181,10 @@ const main = async () => {
   console.log(`L2 gas price: ${gasPriceBid.toString()}`)
 
   console.log(
-    `Sending greeting to L2 with ${L1ToL2MessageGasParams.deposit.toString()} callValue for L2 fees:`
+    `Sending state to L2 with ${L1ToL2MessageGasParams.deposit.toString()} callValue for L2 fees:`
   )
-  const setGreetingTx = await l1Greeter.setGreetingInL2(
-    newGreeting, // string memory _greeting,
+  const setStateTx = await l1State.setStateInL2(
+    newState, // string memory state,
     L1ToL2MessageGasParams.maxSubmissionCost,
     L1ToL2MessageGasParams.gasLimit,
     gasPriceBid,
@@ -169,13 +192,13 @@ const main = async () => {
       value: L1ToL2MessageGasParams.deposit,
     }
   )
-  const setGreetingRec = await setGreetingTx.wait()
+  const setStateRec = await setStateTx.wait()
 
   console.log(
-    `Greeting txn confirmed on L1! 🙌 ${setGreetingRec.transactionHash}`
+    `State txn confirmed on L1: ${setStateRec.transactionHash}`
   )
 
-  const l1TxReceipt = new L1TransactionReceipt(setGreetingRec)
+  const l1TxReceipt = new L1TransactionReceipt(setStateRec)
 
   /**
    * In principle, a single L1 txn can trigger any number of L1-to-L2 messages (each with its own sequencer number).
@@ -189,7 +212,7 @@ const main = async () => {
   const status = messageResult.status
   if (status === L1ToL2MessageStatus.REDEEMED) {
     console.log(
-      `L2 retryable ticket is executed 🥳 ${messageResult.l2TxReceipt.transactionHash}`
+      `L2 retryable ticket is executed: ${messageResult.l2TxReceipt.transactionHash}`
     )
   } else {
     console.log(
@@ -199,15 +222,15 @@ const main = async () => {
 
   /**
    * Note that during L2 execution, a retryable's sender address is transformed to its L2 alias.
-   * Thus, when GreeterL2 checks that the message came from the L1, we check that the sender is this L2 Alias.
-   * See setGreeting in GreeterL2.sol for this check.
+   * Thus, when StateL2 checks that the message came from the L1, we check that the sender is this L2 Alias.
+   * See setState in StateL2.sol for this check.
    */
 
   /**
-   * Now when we call greet again, we should see our new string on L2!
+   * Now when we call state again, we should see our new string on L2!
    */
-  const newGreetingL2 = await l2Greeter.greet()
-  console.log(`Updated L2 greeting: "${newGreetingL2}" 🥳`)
+  const newStateL2 = await l2State.getState()
+  console.log(`Updated L2 State: "${newStateL2}" `)
 }
 
 main()

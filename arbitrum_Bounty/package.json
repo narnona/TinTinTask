@@ -1,10 +1,10 @@
 {
-  "name": "greeter",
+  "name": "state",
   "license": "Apache-2.0",
   "version": "1.0.0",
   "scripts": {
     "build": "hardhat compile",
-    "greeter": "hardhat run scripts/exec.js"
+    "state": "hardhat run scripts/exec.js"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
